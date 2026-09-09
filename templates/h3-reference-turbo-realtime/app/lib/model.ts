@@ -19,6 +19,8 @@ export {
   useH3ReferenceToVideoTurboRealtimeQueueUpdate as useH3QueueUpdate,
   useH3ReferenceToVideoTurboRealtimeClipStarted as useH3ClipStarted,
   useH3ReferenceToVideoTurboRealtimeClipGenerated as useH3ClipGenerated,
+  useH3ReferenceToVideoTurboRealtimeClipFinished as useH3ClipFinished,
+  useH3ReferenceToVideoTurboRealtimeClipStopped as useH3ClipStopped,
   useH3ReferenceToVideoTurboRealtimeClipFailed as useH3ClipFailed,
   useH3ReferenceToVideoTurboRealtimeCommandError as useH3CommandError,
 } from "./h3.react";
@@ -59,8 +61,23 @@ export const CANVASES: ReadonlyArray<{
 
 /** Per-clip reference count the model accepts. */
 export const MAX_REFERENCES = 9;
-/** Prompt ceiling the model accepts. */
-export const MAX_PROMPT_CHARS = 12_000;
+// What actually bounds a prompt.
+//
+// There is no character limit. The prompt is measured in text tokens against
+// the engine's budget, and going past it is not a refusal: `enqueue` accepts
+// the clip and the build then fails with `clip_failed`. So the composer shows
+// an estimate rather than a hard stop, and warns before you spend a build on
+// a prompt that cannot fit.
+export const PROMPT_TOKEN_BUDGET = 2048;
+
+/**
+ * Rough token count for a prompt: about four characters per token for English
+ * prose. Deliberately approximate — the real count comes from the model's own
+ * tokenizer, which the browser has no access to. Use it to warn, not to block.
+ */
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.trim().length / 4);
+}
 
 // Build the `reference_images` value for `enqueue`.
 //

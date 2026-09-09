@@ -6,8 +6,8 @@ export function Header() {
           H3 Reference Turbo Realtime
         </h1>
         <p className="text-xs text-zinc-500">
-          Give a clip up to nine reference images and a prompt; queue it, then
-          play it.
+          Bring your own references, say what happens, and keep the scene going
+          shot by shot.
         </p>
       </div>
       <span className="rounded-full bg-brand px-3 py-1 font-mono text-xs text-brand-fg">

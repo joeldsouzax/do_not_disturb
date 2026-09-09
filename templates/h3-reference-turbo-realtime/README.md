@@ -23,34 +23,57 @@ pnpm dev
 The key stays on the server. The page mints a short-lived, session-scoped JWT
 and hands the browser only that.
 
+## Three ways in
+
+The left rail switches between three modes. Each asks for exactly the
+references it needs and nothing else.
+
+- **1 subject, 1 shot** — one reference, a line about who it is, and a line
+  about what they do.
+- **2 subjects, 1 place** — a character each plus the setting they meet in,
+  described separately.
+- **Free style** — up to nine references and the prompt written by hand.
+
+In the guided modes the app assembles the six-section prompt the model responds
+well to, so the description you write for a reference stays bound to the
+picture it came from. Free style sends your text exactly as typed.
+
+**Every mode opens on a working scene.** The references live in
+`public/presets/` and the text in `app/lib/presets.ts`, so the app generates
+something the moment it loads instead of asking you to invent a subject, a
+place and a shot first. Swap them for your own: a preset is a file path and
+three or four strings.
+
 ## What it does
 
-- **Build a reference set.** Up to nine images, reorderable, each labelled with
-  the `Picture N` name the prompt refers to.
-- **Write the scene.** A preset gets you started in the six-section shape the
-  model responds well to: define the subjects and bind them to pictures, then
-  the summary, the traits to preserve, the look and beats, and the sound.
-- **Queue and play.** Clips build in the background; play them on demand or
-  turn on autoplay. Reorder or drop anything still queued.
-- **Continue a scene.** Carry motion, camera, and audio into the next clip
-  while new references drive its appearance.
+- **Names your references for you.** Each thumbnail carries the `Picture N`
+  badge the prompt uses, so the binding is visible instead of explained.
+- **Plays without being asked.** Generating connects, turns autoplay on,
+  uploads, and enqueues; the clip starts on its own when it is ready, and the
+  stage says which of connecting, uploading, or generating you are in.
+- **Keeps the scene going.** When a clip finishes, a box asks what should
+  happen next. One line of text is enough: the references and their
+  descriptions carry over, and the next clip continues the previous one's
+  motion, camera, and audio through `continue_from_clip_id` rather than cutting.
 - **Snap a clip.** Capture the last few seconds of the session and download it.
 
 ## Code tour
 
-| Path                            | What it holds                                                      |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `app/page.tsx`                  | Server gate: the app, or setup instructions when no key is set.    |
-| `app/H3App.tsx`                 | Provider, the memoized token resolver, and the layout.            |
-| `app/api/reactor/token/route.ts`| Mints the session-scoped JWT from `REACTOR_API_KEY`.              |
-| `app/lib/h3.ts`, `h3.react.tsx` | The typed client, generated from the model's schema. Do not edit.  |
-| `app/lib/model.ts`              | Short names for the generated symbols, plus the reference helper.  |
-| `app/lib/prompts.ts`            | Scene presets.                                                     |
-| `app/components/ReferencePicker.tsx` | The ordered reference set.                                    |
-| `app/components/ClipComposer.tsx`    | Connect, upload, enqueue.                                     |
-| `app/components/QueuePanel.tsx`      | Both queues, mirrored from `queue_update`.                    |
-| `app/components/NowPlaying.tsx`      | Playback state and transport.                                 |
-| `app/components/SnapClip.tsx`        | Clip capture; model-agnostic.                                 |
+| Path                             | What it holds                                                     |
+| -------------------------------- | ----------------------------------------------------------------- |
+| `app/page.tsx`                   | Server gate: the app, or setup instructions when no key is set.    |
+| `app/H3App.tsx`                  | Provider, the memoized token resolver, and the layout.            |
+| `app/api/reactor/token/route.ts` | Mints the session-scoped JWT from `REACTOR_API_KEY`.              |
+| `app/lib/h3.ts`, `h3.react.tsx`  | The typed client, generated from the model's schema. Do not edit.  |
+| `app/lib/model.ts`               | Short names for the generated symbols, plus the reference helper.  |
+| `app/lib/shot.ts`                | The shot model, the three modes, and the prompt builder.           |
+| `app/lib/session.tsx`            | Shared state: the draft, the uploads, connect/upload/enqueue.      |
+| `app/components/Composer.tsx`    | The left rail: mode, references, shot, controls.                   |
+| `app/components/ReferenceSlot.tsx` | One labelled reference and its description.                      |
+| `app/components/ShotControls.tsx`  | Length and seed pickers.                                         |
+| `app/components/Stage.tsx`       | The video, its state overlay, and the transport.                   |
+| `app/components/WhatNext.tsx`    | The continuation box shown when a clip finishes.                   |
+| `app/components/SnapClip.tsx`    | Clip capture; model-agnostic.                                      |
 
 ## One thing that will bite you
 
