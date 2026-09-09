@@ -158,22 +158,24 @@ export function Composer() {
 
       <ShotControls />
 
-      {inFlight && !busy ? (
-        <div className="flex items-center justify-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5">
+      {inFlight && !busy && (
+        <div className="flex items-center justify-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 text-xs text-zinc-400">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-          <span className="text-xs text-zinc-400">
-            {state?.playing ? "Playing" : "Generating"} — watch the stage
-          </span>
+          {state?.playing ? "Playing" : "Generating"} — steer it under the video
         </div>
-      ) : (
-        <button
-          onClick={() => void queueShot()}
-          disabled={busy || problem !== null}
-          className="rounded-lg bg-brand px-3 py-2.5 text-sm font-medium text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-40"
-        >
-          {buttonLabel}
-        </button>
       )}
+
+      <button
+        onClick={() => void queueShot()}
+        disabled={busy || problem !== null}
+        className={
+          inFlight
+            ? "rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 hover:text-zinc-100 disabled:opacity-40"
+            : "rounded-lg bg-brand px-3 py-2.5 text-sm font-medium text-brand-fg transition-opacity hover:opacity-90 disabled:opacity-40"
+        }
+      >
+        {inFlight && !busy ? "Play this scene next" : buttonLabel}
+      </button>
 
       {problem && !inFlight && (
         <p className="text-[11px] text-amber-400">{problem}</p>

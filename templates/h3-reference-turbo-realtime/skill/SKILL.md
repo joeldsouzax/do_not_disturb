@@ -24,7 +24,25 @@ uploaded `FileRef` per slot, which is what lets a follow-on shot reuse the same
 references without uploading the same bytes twice — uploads are session scoped,
 so they stay valid for the whole session.
 
-Three behaviours in there are deliberate and worth keeping:
+### Continuous generation, and why a steer jumps the queue
+
+The session keeps `TARGET_PENDING` clips in flight, topping up off
+`state_update` — which fires on every queue change, so it is the natural clock.
+Each top-up draws the next beat from `CONTINUATION_BEATS` and chains it from
+the last generated clip.
+
+That deep queue is exactly what would stop a user's direction from landing, so
+`steer` pops the automatic clips before enqueueing at `position: 0`. Automatic
+clips are identifiable because they carry `metadata: {"auto":true}`, which the
+model echoes back on every clip message — the queue itself tells you which
+clips were nobody's idea. Do not swap that tag for client-side bookkeeping; the
+echo is what survives a reconnect.
+
+The `inFlight` ref is load-bearing rather than defensive. `state_update` fires
+again before an `enqueue` is accepted, so without it the top-up re-enters and
+floods the generation queue until the model starts refusing.
+
+Three more behaviours are deliberate and worth keeping:
 
 - **Autoplay is turned on at connect**, before the first enqueue. A queued clip
   that needs a button press to appear reads as a broken app.
