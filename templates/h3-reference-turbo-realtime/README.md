@@ -51,16 +51,11 @@ three or four strings.
 - **Plays without being asked.** Generating connects, turns autoplay on,
   uploads, and enqueues; the clip starts on its own when it is ready, and the
   stage says which of connecting, uploading, or generating you are in.
-- **Keeps generating.** The session tops its own queue up from a pool of quiet
-  continuation beats, each chained from the last generated clip, so playback
-  never runs dry. Turn it off with the toggle if you would rather drive every
-  shot yourself.
-- **Steers without waiting.** The box under the video asks what should happen
-  next, and one line is enough: the references and their descriptions carry
-  over. What you type plays *next* — the session drops whatever it queued on
-  its own and puts yours at the front of the build queue, continuing the last
-  generated clip's motion, camera, and audio through `continue_from_clip_id`
-  rather than cutting.
+- **Continues a scene shot by shot.** The box under the video asks what should
+  happen next, and one line is enough: the references and their descriptions
+  carry over. The clip picks up the last one's motion, camera, and audio
+  through `continue_from_clip_id` rather than cutting. Queue the next beat
+  while the current one plays and they run back to back.
 - **Snap a clip.** Capture the last few seconds of the session and download it.
 
 ## Code tour

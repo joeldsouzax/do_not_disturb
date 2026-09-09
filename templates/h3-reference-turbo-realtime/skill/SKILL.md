@@ -1,6 +1,6 @@
 ---
 name: h3-reference-turbo-realtime
-description: Extend the H3 Reference Turbo Realtime starter — a queue-and-player app where every clip is conditioned on one to nine reference images. Covers the reference contract, the queue contract, continuous generation and steering, continuation between clips, the typed SDK, and the auth shape.
+description: Extend the H3 Reference Turbo Realtime starter — a queue-and-player app where every clip is conditioned on one to nine reference images. Covers the reference contract, the queue contract, continuation between clips, the typed SDK, and the auth shape.
 ---
 
 # Extending H3 Reference Turbo Realtime
@@ -24,23 +24,21 @@ uploaded `FileRef` per slot, which is what lets a follow-on shot reuse the same
 references without uploading the same bytes twice — uploads are session scoped,
 so they stay valid for the whole session.
 
-### Continuous generation, and why a steer jumps the queue
+### Every clip is one somebody asked for
 
-The session keeps `TARGET_PENDING` clips in flight, topping up off
-`state_update` — which fires on every queue change, so it is the natural clock.
-Each top-up draws the next beat from `CONTINUATION_BEATS` and chains it from
-the last generated clip.
+The session generates nothing on its own. It opens with the shot in the
+composer, and goes on only when the next beat is typed into the continuation
+box. Playback runs dry between clips, and that is deliberate: a clip takes as
+long as it takes to build, and filling the gap with invented beats spends the
+account's credits on video nobody asked for and pushes the scene somewhere
+nobody chose.
 
-That deep queue is exactly what would stop a user's direction from landing, so
-`steer` pops the automatic clips before enqueueing at `position: 0`. Automatic
-clips are identifiable because they carry `metadata: {"auto":true}`, which the
-model echoes back on every clip message — the queue itself tells you which
-clips were nobody's idea. Do not swap that tag for client-side bookkeeping; the
-echo is what survives a reconnect.
+If you do want a channel that never stops, drive it from a script rather than
+from this UI, and give whatever picks the next beat a real source — a playlist,
+a chat room, a schedule. The `h3-livestream` template is that shape.
 
-The `inFlight` ref is load-bearing rather than defensive. `state_update` fires
-again before an `enqueue` is accepted, so without it the top-up re-enters and
-floods the generation queue until the model starts refusing.
+The `inFlight` ref guards re-entry: `queueShot` and `steer` both upload before
+they enqueue, so without it a double click sends the same shot twice.
 
 Three more behaviours are deliberate and worth keeping:
 

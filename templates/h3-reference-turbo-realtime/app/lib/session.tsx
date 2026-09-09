@@ -11,14 +11,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  useH3,
-  useH3ClipGenerated,
-  useH3QueueUpdate,
-  useH3StateUpdate,
-  type H3Clip,
-} from "./model";
-import { CONTINUATION_BEATS, loadPresetFile, PRESETS } from "./presets";
+import { useH3, useH3ClipGenerated } from "./model";
+import { loadPresetFile, PRESETS } from "./presets";
 import {
   buildPrompt,
   draftProblem,
@@ -30,28 +24,14 @@ import {
 
 // One place for the state the composer, the stage and the steer box share.
 //
-// Two behaviours live here that are the whole point of the app, and both are
-// easier to get wrong than they look.
+// Every clip here is one somebody asked for. The session generates nothing on
+// its own: it opens with the shot in the composer, and continues only when the
+// next beat is typed. Playback runs dry between clips, and that is the honest
+// behaviour — a clip takes as long as it takes to build.
 //
-// Continuous generation: the session keeps its own queue topped up so playback
-// never runs dry. It draws on a pool of beats and chains each one from the most
-// recently generated clip, so the scene continues rather than cutting.
-//
-// Steering: a clip the user asks for has to play next, not behind whatever the
-// session queued while they were typing. So a steer pops the pending automatic
-// clips first and enqueues at position 0. Tagging the automatic ones through
-// `metadata` is what makes them identifiable later — the model echoes it back
-// on every clip message, so the queue tells you which clips were nobody's idea.
-
-/** How many clips to keep pending. Deep enough to hide build time, shallow
- *  enough that a steer lands almost immediately. */
-const TARGET_PENDING = 2;
-
-const AUTO_TAG = JSON.stringify({ auto: true });
-
-function isAuto(clip: H3Clip): boolean {
-  return clip.metadata === AUTO_TAG;
-}
+// Continuing rather than cutting is the one subtlety. A steer carries the
+// references and their descriptions over and chains from the most recently
+// generated clip, so motion, camera and audio hold across the boundary.
 
 interface SessionValue {
   draft: ShotDraft;
@@ -64,11 +44,8 @@ interface SessionValue {
   problem: string | null;
   /** Queue the draft as the opening shot and start the session. */
   queueShot: () => Promise<void>;
-  /** Steer: play this next, continuing from the latest generated clip. */
+  /** Queue the next beat, continuing from the latest generated clip. */
   steer: (action: string) => Promise<void>;
-  /** Whether the session keeps generating on its own. */
-  autoContinue: boolean;
-  setAutoContinue: (on: boolean) => void;
   /** True while this mode can continue a scene at all (free mode is one-shot). */
   canContinue: boolean;
   busy: boolean;
@@ -96,14 +73,13 @@ const EMPTY_DRAFT = (mode: Mode): ShotDraft => ({
 });
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { status, connect, uploadFile, enqueue, pop, setAutoplay } = useH3();
+  const { status, connect, uploadFile, enqueue, setAutoplay } = useH3();
 
   const [draft, setDraft] = useState<ShotDraft>(() =>
     EMPTY_DRAFT("one-subject"),
   );
   const [phase, setPhase] = useState<SessionValue["phase"]>("idle");
   const [hasQueued, setHasQueued] = useState(false);
-  const [autoContinue, setAutoContinue] = useState(true);
   const [lastAccepted, setLastAccepted] =
     useState<SessionValue["lastAccepted"]>(null);
   const [uploaded, setUploaded] = useState<Map<number, FileRef>>(new Map());
@@ -112,21 +88,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Refs, not state: these are read inside callbacks that must not re-run just
   // because a queue count moved.
   const lastGenerated = useRef<string | null>(null);
-  const queue = useRef<{ generation: H3Clip[]; playout: H3Clip[] }>({
-    generation: [],
-    playout: [],
-  });
-  const pending = useRef(0);
   const inFlight = useRef(false);
-  const beat = useRef(0);
   const draftRef = useRef(draft);
   draftRef.current = draft;
 
+  // What a continuation chains from. Only a *generated* clip can be continued,
+  // so this tracks clip_generated rather than the enqueue reply.
   useH3ClipGenerated((m) => {
     lastGenerated.current = m.clip.clip_id;
-  });
-  useH3QueueUpdate((q) => {
-    queue.current = { generation: q.generation, playout: q.playout };
   });
 
   const canContinue = draft.mode !== "free";
@@ -286,13 +255,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async (
       prompt: string,
       refs: FileRef[],
-      opts: { continueFrom?: string; position?: number; auto?: boolean } = {},
+      opts: { continueFrom?: string } = {},
     ) => {
       const d = draftRef.current;
       const reply = await enqueue({
         prompt,
         seconds: d.seconds,
-        ...(opts.auto ? { metadata: AUTO_TAG } : {}),
         ...(refs.length === 1
           ? { reference_image: refs[0] }
           : { reference_images: refs }),
@@ -300,7 +268,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         ...(opts.continueFrom
           ? { continue_from_clip_id: opts.continueFrom }
           : {}),
-        ...(opts.position !== undefined ? { position: opts.position } : {}),
       });
       // A refusal resolves undefined; the reason arrives as command_error.
       if (!reply) return null;
@@ -315,100 +282,48 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [enqueue],
   );
 
-  // Opening shot, and also "play this scene now" once the session is running.
+  // The opening shot, and "play this scene" again once the session is running.
   //
-  // Mid-session it is a deliberate cut rather than a continuation: no
-  // `continue_from_clip_id`, because the point of pressing it again is that the
-  // composer changed. It still clears the automatic backlog and takes the front
-  // of the queue, or a new scene would sit behind filler for the old one.
+  // Pressing it a second time is a deliberate cut, not a continuation: no
+  // `continue_from_clip_id`, because the reason to press it again is that the
+  // composer changed.
   const queueShot = useCallback(async () => {
     if (inFlight.current) return;
     inFlight.current = true;
     try {
-      const running = hasQueued;
-      if (running) {
-        const stale = [
-          ...queue.current.generation,
-          ...queue.current.playout,
-        ].filter(isAuto);
-        for (const clip of stale) await pop({ clip_id: clip.clip_id });
-      }
       const refs = await prepare();
       setPhase("queueing");
-      await send(buildPrompt(draftRef.current), refs, {
-        ...(running ? { position: 0 } : {}),
-      });
+      await send(buildPrompt(draftRef.current), refs);
     } finally {
       setPhase("idle");
       inFlight.current = false;
     }
-  }, [hasQueued, pop, prepare, send]);
+  }, [prepare, send]);
 
-  // A steer plays next. Anything the session queued on its own is stale the
-  // moment someone says what they want, so it is popped first — otherwise the
-  // new clip waits behind filler. Position 0 puts it at the front of the build
-  // queue, and it continues from the latest generated clip so the scene holds.
+  // The next beat of the same scene. The references and their descriptions
+  // carry over, so only the action changes, and it chains from the latest
+  // generated clip so motion, camera and audio hold across the boundary.
   const steer = useCallback(
     async (action: string) => {
       if (inFlight.current) return;
       inFlight.current = true;
       try {
-        const stale = [
-          ...queue.current.generation,
-          ...queue.current.playout,
-        ].filter(isAuto);
-        for (const clip of stale) await pop({ clip_id: clip.clip_id });
-
         const refs = await prepare();
         setPhase("queueing");
-        await send(buildPrompt({ ...draftRef.current, action }, {
-          continuing: true,
-        }), refs, {
-          continueFrom: lastGenerated.current ?? undefined,
-          position: 0,
-        });
-        // Carry it forward so the next continuation follows this beat.
+        await send(
+          buildPrompt({ ...draftRef.current, action }, { continuing: true }),
+          refs,
+          { continueFrom: lastGenerated.current ?? undefined },
+        );
+        // Carry it forward so a later beat continues from this one.
         setDraft((d) => ({ ...d, action }));
       } finally {
         setPhase("idle");
         inFlight.current = false;
       }
     },
-    [pop, prepare, send],
+    [prepare, send],
   );
-
-  /* ---------------------------------------------------------------- */
-  /* Keeping the queue full                                            */
-  /* ---------------------------------------------------------------- */
-
-  // `state_update` fires on every queue change, which makes it the natural
-  // clock for topping up. The guards matter more than the arithmetic: without
-  // the in-flight ref this fires again before the first enqueue is accepted
-  // and floods the queue.
-  useH3StateUpdate((s) => {
-    pending.current = s.generation_queued + s.playout_queued;
-    if (!autoContinue || !canContinue || !hasQueued) return;
-    if (status !== "ready" || inFlight.current) return;
-    if (pending.current >= TARGET_PENDING) return;
-    if (s.generation_queued >= s.generation_capacity) return;
-
-    inFlight.current = true;
-    void (async () => {
-      try {
-        const refs = await prepare();
-        const next = CONTINUATION_BEATS[beat.current % CONTINUATION_BEATS.length];
-        beat.current += 1;
-        await send(
-          buildPrompt({ ...draftRef.current, action: next }, { continuing: true }),
-          refs,
-          { continueFrom: lastGenerated.current ?? undefined, auto: true },
-        );
-      } finally {
-        setPhase("idle");
-        inFlight.current = false;
-      }
-    })();
-  });
 
   const value = useMemo<SessionValue>(
     () => ({
@@ -422,8 +337,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       problem: draftProblem(draft),
       queueShot,
       steer,
-      autoContinue,
-      setAutoContinue,
       canContinue,
       busy: phase !== "idle" || loadingPreset,
       phase,
@@ -433,7 +346,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }),
     [
       addSlot,
-      autoContinue,
       canContinue,
       draft,
       hasQueued,

@@ -94,23 +94,6 @@ A low sustained synth drone, slowly rising in pitch, with no percussion.`,
   },
 };
 
-// Beats the session draws on to keep the scene running when nobody is steering.
-//
-// They describe camera and action only. The subject definitions and the look
-// are restated by the prompt builder on every continued clip, so a beat does
-// not need to name anyone — which is what lets one pool serve any scene.
-//
-// Keep them small and undramatic. Their job is to hold the scene together
-// between the shots someone actually asked for, not to invent a plot.
-export const CONTINUATION_BEATS: string[] = [
-  "the shot holds as the moment settles, the camera drifting a few centimetres closer",
-  "the camera eases sideways, keeping the same framing while the light shifts",
-  "the subjects hold their ground and the camera pulls back slightly",
-  "a small movement passes through the scene and the camera stays with it",
-  "the camera settles low and steady as the scene breathes",
-  "the framing holds while the background moves behind the subjects",
-];
-
 /** Fetch a vendored preset image and hand back a File the slots can hold. */
 export async function loadPresetFile(src: string): Promise<File> {
   const res = await fetch(src);
