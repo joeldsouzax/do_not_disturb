@@ -8,9 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@reactor-models/h3-reference-to-video-turbo-realtime':
+        specifier: ^0.3.0
+        version: 0.3.0(react@19.2.8)
       '@reactor-team/js-sdk':
-        specifier: ^3.0.0
-        version: 3.0.1(react@19.2.8)
+        specifier: ^3.0.2
+        version: 3.0.2(react@19.2.8)
       '@reactor-team/ui':
         specifier: ^1.4.1
         version: 1.4.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -268,8 +271,13 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@reactor-team/js-sdk@3.0.1':
-    resolution: {integrity: sha512-NbGadsNE3DRJ+X27AEx8fIH4TIteqnKtbM/MssdIitnkpNBQ3ogHVq+rYcWQPHDMFGAgeePNvmCuzLyhib5jiw==}
+  '@reactor-models/h3-reference-to-video-turbo-realtime@0.3.0':
+    resolution: {integrity: sha512-cNQQrnmNUrRbhia2mIkuNxZr1tEmmIMZEiqt7MD8Fy2S7M7BeCdvIheaTgyWODJ/k71RMvTjquS5qyuVwqlpjA==}
+    peerDependencies:
+      react: '>=18'
+
+  '@reactor-team/js-sdk@3.0.2':
+    resolution: {integrity: sha512-h13EP2WpFXS/qbC7l3HGkfSibN/Gk1WPZou25kwHNtt04bj8JtqzoP/Kupn3/3tV997RHXApANoO6Bie7TssLg==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
@@ -761,7 +769,14 @@ snapshots:
   '@next/swc-win32-x64-msvc@15.5.25':
     optional: true
 
-  '@reactor-team/js-sdk@3.0.1(react@19.2.8)':
+  '@reactor-models/h3-reference-to-video-turbo-realtime@0.3.0(react@19.2.8)':
+    dependencies:
+      '@reactor-team/js-sdk': 3.0.2(react@19.2.8)
+      react: 19.2.8
+    transitivePeerDependencies:
+      - supports-color
+
+  '@reactor-team/js-sdk@3.0.2(react@19.2.8)':
     dependencies:
       awaitqueue: 3.3.1
       hls.js: 1.7.2

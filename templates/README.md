@@ -27,7 +27,7 @@ Renaming one breaks that command.
 | [`sana-streaming/`](./sana-streaming)   | [`@reactor-models/sana-streaming`](https://www.npmjs.com/package/@reactor-models/sana-streaming)   | Streaming **video-to-video editor**. Live webcam transform via a manual `camera` publish, file-clip editing with side-by-side compare, mid-stream re-prompting, seed control.                                                                                                                       |
 | [`x2/`](./x2)                           | [`@reactor-models/x2`](https://www.npmjs.com/package/@reactor-models/x2)                           | Streaming **video-to-video editor** on XMAX X2. Webcam, file-clip or still-image sources on one `source` track, side-by-side compare, reference-image conditioning, drag-to-steer pointer on the output, keep-backlog toggle.                                                                       |
 | [`fast-h3/`](./fast-h3) | [`@reactor-models/fast-h3`](https://www.npmjs.com/package/@reactor-models/fast-h3) | Queued clip generation with an explicit player. Compose a multi-scene episode by hand or from a writer prompt, then watch chained clips play as one continuous video. Teaches the queue contract and the hard-cut prompting rule that keeps chained scenes from degrading. |
-| [`h3-reference-turbo-realtime/`](./h3-reference-turbo-realtime) | vendored (generated client, checked in — no published package yet) | **Reference-to-video** on H3 Reference Turbo Realtime. Every clip is conditioned on one to nine ordered reference images, named `Picture 1`…`Picture N` in the prompt, so the composer is a reorderable reference set beside a six-section scene prompt. Queue, play, continue a scene into the next clip, and pick from four canvases. Teaches the reference contract — including that one reference and a list of references travel over the wire differently. A different model from `fast-h3`, which takes keyframes rather than references. |
+| [`h3-reference-turbo-realtime/`](./h3-reference-turbo-realtime) | [`@reactor-models/h3-reference-to-video-turbo-realtime`](https://www.npmjs.com/package/@reactor-models/h3-reference-to-video-turbo-realtime) | **Reference-to-video** on H3 Reference Turbo Realtime. Every clip is conditioned on one to nine ordered reference images, named `Picture 1`…`Picture N` in the prompt, so the composer is a reorderable reference set beside a six-section scene prompt. Queue, play, continue a scene into the next clip, and pick from four canvases. The session keeps its own queue topped up, and a steer the viewer types jumps ahead of it. A different model from `fast-h3`, which takes keyframes rather than references. |
 | [`visko-orbis-stable/`](./visko-orbis-stable) | [`@reactor-models/visko-orbis-stable`](https://www.npmjs.com/package/@reactor-models/visko-orbis-stable) | Continuous steerable video. The hero is the **mid-flight morph**: `setPrompt` during a run reshapes the picture at the next chunk boundary instead of cutting. Explicit `setImage` → `setPrompt` → `start` chain for image-to-video, plus resolution, seed, and audio knobs rendered from the state snapshot. |
 | [`visko-orbis-dynamic/`](./visko-orbis-dynamic) | [`@reactor-models/visko-orbis-dynamic`](https://www.npmjs.com/package/@reactor-models/visko-orbis-dynamic) | The companion model to Visko Orbis Stable, same shape and same mid-flight morph. Its delivery-resolution list also offers `native`, which ships the model's own geometry instead of upscaling. |
 | [`fast-h3-livestream/`](./fast-h3-livestream) | [`@reactor-models/fast-h3`](https://www.npmjs.com/package/@reactor-models/fast-h3) (in the streamer, via the Python SDK) | The same model as a **24/7 broadcast channel** rather than a private session. A Python streamer drives the model and publishes into a LiveKit room; a Next.js viewer watches the shared stream and its chat pitches the episodes. Two parts, so it sets up per part — see its README. |
@@ -139,11 +139,10 @@ error-ish shape — is what a call site tests for.
 
 - Standalone Next.js 15 + React 19 + Tailwind v4 + TypeScript.
 - `@reactor-team/js-sdk` `^3.0.0`, plus one `@reactor-models/*` typed SDK per
-  folder, generated from the model's published schema.
-  `h3-reference-turbo-realtime` is the exception: no package is published for
-  that model yet, so the same generated client is **checked in** under
-  `app/lib/` and marked `DO NOT EDIT`. Regenerate it rather than editing it,
-  and swap to the package once one ships.
+  folder, generated from the model's published schema. A template that needs a
+  model surface the SDK cannot yet carry pins a newer `js-sdk` than the floor:
+  `h3-reference-turbo-realtime` takes `^3.0.2`, the release that serializes an
+  array of uploads for its `reference_images`.
 - One model per folder. The folder name is the model identifier the scaffolding
   CLI takes as `--model <name>`.
 - One project per folder, installed from the root. `fast-h3-livestream` is the

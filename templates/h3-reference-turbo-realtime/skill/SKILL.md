@@ -1,6 +1,6 @@
 ---
 name: h3-reference-turbo-realtime
-description: Extend the H3 Reference Turbo Realtime starter — a queue-and-player app where every clip is conditioned on one to nine reference images. Covers the reference contract and the multi-image upload trap, the queue contract, continuation between clips, the vendored typed client, and the auth shape.
+description: Extend the H3 Reference Turbo Realtime starter — a queue-and-player app where every clip is conditioned on one to nine reference images. Covers the reference contract, the queue contract, continuous generation and steering, continuation between clips, the typed SDK, and the auth shape.
 ---
 
 # Extending H3 Reference Turbo Realtime
@@ -100,30 +100,26 @@ This is the model's whole point, and the part with a real trap in it.
 - **Each clip owns its references.** They are pinned at enqueue time; later
   uploads do not touch a clip that is already queued, building, or playing.
 
-### The multi-image upload trap
+### One reference or a list
 
-One reference and a list of references take **different paths**, and mixing
-them up fails silently — the command is accepted locally and refused by the
-model.
+Both take a `FileRef` straight from `uploadFile`. Pass them through as they
+come:
 
 ```ts
-// One reference: pass the FileRef straight through. The SDK walks the
-// command's top-level values, lifts the FileRef into a separate upload slot,
-// and the runtime resolves it there.
-await enqueue({ prompt, reference_image: ref });
-
-// A list: the SDK does NOT walk into arrays, so a FileRef[] is left in the
-// JSON payload and serializes as { uploadId, mimeType, … } — which is not
-// what the model reads. It expects [{ upload_id }, …] and resolves each id
-// itself.
-await enqueue({ prompt, reference_images: toReferenceImages(refs) });
+await enqueue({ prompt, reference_image: ref }); // one
+await enqueue({ prompt, reference_images: refs }); // one to nine
 ```
 
-`toReferenceImages` in `app/lib/model.ts` is that conversion, and it is the
-only place the cast lives. The generated client types the parameter as
-`FileRef[]`, so TypeScript will not catch this for you.
+Send exactly one of the two. The model refuses a request carrying both.
 
-Also: send exactly one of the two. The model refuses a request carrying both.
+This needs no conversion, but it is worth knowing why, because older code
+carries one. Until `@reactor-team/js-sdk` 3.0.2 the SDK only lifted uploads out
+of a command's top-level values, so a `FileRef[]` was left in the JSON payload
+and serialized with its camelCase fields — not the `{ upload_id }` the model
+reads. Every caller hand-wrote that conversion. 3.0.2 serializes the array and
+`reactor-runtime` 3.3.1 resolves it, so the `FileRef[]` the typed SDK has
+always advertised is now true on the wire. If you find a `toReferenceImages`
+helper in code copied from elsewhere, delete it.
 
 **Upload order matters, so upload sequentially.** `prepare` in
 `app/lib/session.tsx` loops rather than using `Promise.all`, because slot order
@@ -169,31 +165,21 @@ Writing the continued clip matters as much as setting the field:
 `set_flush_on_clip_end` is a different thing. It chooses black or a held last
 frame at a playback boundary. It does not request continuation.
 
-## The vendored typed client
+## The typed SDK
 
-`app/lib/h3.ts` and `app/lib/h3.react.tsx` are **generated** by
-`@reactor-team/codegen` from the model's published schema and marked
-`DO NOT EDIT`. There is no `@reactor-models/*` package for this model yet, so
-the client is checked in instead of installed.
+Every model-specific symbol comes from
+`@reactor-models/h3-reference-to-video-turbo-realtime`, generated from the
+model's published schema and installed like any other dependency. Write no
+wire strings by hand: a hand-built command name or field drifts from the
+deployed model, which is the defect the typed packages exist to prevent.
 
-Regenerate rather than hand-edit:
+The package version tracks the model release, so `0.3.0` here describes the
+`0.3.0` release on the API. Upgrading it is how you pick up a schema change.
 
-```bash
-# in a js-sdk-codegen checkout, with a schema for the release you target
-node dist/cli.js --schema <schema.json> --standalone --react \
-  --output <this-template>/app/lib/h3.ts
-```
-
-`app/lib/model.ts` maps the generated symbols to short names
-(`useH3ReferenceToVideoTurboRealtimeStateUpdate` → `useH3StateUpdate`) and
-holds the reference-list helper. The long names are the ones the published
-package will export, so keep the aliases in this one file rather than renaming
-anything generated.
-
-One known wart: the generated doc comment on `queue_update.history` still says
-no continuation frames are retained. That text came from the model's own
-schema and is corrected in the model for its next release; regenerating then
-clears it. The behaviour is as described above.
+`app/lib/model.ts` maps its symbols to short names
+(`useH3ReferenceToVideoTurboRealtimeStateUpdate` → `useH3StateUpdate`) and adds
+the few constants the schema does not carry, such as the canvas dimensions.
+Keep the aliases in that one file rather than renaming anything at a call site.
 
 ## Auth: the no-store route + the memoized resolver
 
@@ -257,8 +243,8 @@ file into another template unchanged.
 
 ## Common mistakes when extending
 
-1. Passing `FileRef[]` to `reference_images` and wondering why the model
-   refuses it. Use `toReferenceImages`.
+1. Converting a `FileRef[]` to `{ upload_id }` by hand before sending it. The
+   SDK does that; a manual conversion now sends the wrong shape.
 2. Sending both `reference_image` and `reference_images`.
 3. Uploading with `Promise.all`, which scrambles `Picture N`.
 4. Uploading before connecting.

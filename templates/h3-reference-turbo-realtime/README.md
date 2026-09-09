@@ -70,8 +70,7 @@ three or four strings.
 | `app/page.tsx`                   | Server gate: the app, or setup instructions when no key is set.    |
 | `app/H3App.tsx`                  | Provider, the memoized token resolver, and the layout.            |
 | `app/api/reactor/token/route.ts` | Mints the session-scoped JWT from `REACTOR_API_KEY`.              |
-| `app/lib/h3.ts`, `h3.react.tsx`  | The typed client, generated from the model's schema. Do not edit.  |
-| `app/lib/model.ts`               | Short names for the generated symbols, plus the reference helper.  |
+| `app/lib/model.ts`               | Short names for the typed SDK's symbols, plus the canvas constants. |
 | `app/lib/shot.ts`                | The shot model, the three modes, and the prompt builder.           |
 | `app/lib/session.tsx`            | Shared state: the draft, the uploads, connect/upload/enqueue.      |
 | `app/components/Composer.tsx`    | The left rail: mode, references, shot, controls.                   |
@@ -83,11 +82,11 @@ three or four strings.
 
 ## One thing that will bite you
 
-A single reference and a list of references travel differently. One `FileRef`
-passed as `reference_image` is lifted into an upload slot by the SDK. A list is
-not: the SDK does not walk into arrays, so `reference_images` has to be built
-as `[{ upload_id }, …]`. `toReferenceImages` in `app/lib/model.ts` does that,
-and `skill/SKILL.md` explains why.
+Reference images are pinned to a clip when you enqueue it. Uploading a new one
+afterwards does not touch a clip that is already queued, building, or playing —
+it applies to the next clip you send. Slot order is what binds `Picture 1`,
+`Picture 2`, and so on, so the uploads happen in sequence rather than in
+parallel; `skill/SKILL.md` covers the rest of the reference contract.
 
 ## Going further
 

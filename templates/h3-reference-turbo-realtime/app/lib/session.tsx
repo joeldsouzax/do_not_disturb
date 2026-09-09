@@ -12,7 +12,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  toReferenceImages,
   useH3,
   useH3ClipGenerated,
   useH3QueueUpdate,
@@ -296,7 +295,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         ...(opts.auto ? { metadata: AUTO_TAG } : {}),
         ...(refs.length === 1
           ? { reference_image: refs[0] }
-          : { reference_images: toReferenceImages(refs) }),
+          : { reference_images: refs }),
         ...(d.seed.trim() ? { seed: Number(d.seed) } : {}),
         ...(opts.continueFrom
           ? { continue_from_clip_id: opts.continueFrom }
