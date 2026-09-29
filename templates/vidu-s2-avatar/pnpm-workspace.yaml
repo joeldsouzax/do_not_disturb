@@ -4,3 +4,8 @@ packages: []
 
 allowBuilds:
   sharp: true
+
+# The first-party model package may ship on the same day as this example.
+# Exempt only the exact reviewed version from pnpm 11's 24-hour release window.
+minimumReleaseAgeExclude:
+  - "@reactor-models/vidu-s2-avatar@0.4.0"
