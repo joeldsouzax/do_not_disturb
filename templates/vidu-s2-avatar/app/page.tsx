@@ -1,7 +1,13 @@
-import { ViduApp } from "./ViduApp";
+import { VoiceTable } from "./VoiceTable";
 
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <ViduApp configured={Boolean(process.env.REACTOR_API_KEY)} />;
+  return (
+    <VoiceTable
+      configured={Boolean(
+        process.env.GOOGLE_AI_STUDIO_KEY && process.env.REACTOR_API_KEY
+      )}
+    />
+  );
 }

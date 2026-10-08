@@ -8,6 +8,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@reactor-models/fast-h3": "^1.7.2",
+    "@reactor-models/h3-reference-to-video-turbo-realtime": "^0.5.5",
+    "@reactor-models/happy-oyster": "^1.0.1",
+    "@reactor-models/helios": "^1.0.1",
+    "@reactor-models/lingbot-world-2": "^1.0.1",
     "@reactor-models/vidu-s2-avatar": "0.4.0",
     "@reactor-team/js-sdk": "^3.0.2",
     "@reactor-team/ui": "^1.4.1",

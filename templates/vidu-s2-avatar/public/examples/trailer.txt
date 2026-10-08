@@ -1,0 +1,17 @@
+Do Not Disturb — promotional waiting-screen trailer
+
+Generated once on 2026-10-08 with reactor/h3-reference-to-video-turbo-realtime,
+typed package 0.5.5. Text-only; no camera or miniature references.
+Clip: 6b45c8f7-8155-4aa3-8a82-e438b71d44f9; seed: 1000.
+Provider duration: 15.083 seconds. Saved silent 14-second VP9 WebM capture.
+The trailer is promotional imagery, never authoritative campaign context.
+
+Prompt:
+A vast ancient stone citadel above an emerald forest and winding river at dawn.
+Three anonymous cloaked adventurers seen only from behind stand on a moss-covered
+stone overlook. Faces and identities concealed. Mountain waterfalls, drifting
+clouds and mist, a distant dragon gliding across the horizon. Stone, moss, leather,
+wool, iron and wood. No modern buildings, neon or electricity. Flowing river and
+waterfalls, moving mist and cloaks, slow dragon flight. One continuous slow dolly
+forward. Photorealistic lavish fantasy film, atmospheric detail, teal shadows,
+golden dawn, widescreen. No speech, text, logos, menus, HUD, dice or toy bases.

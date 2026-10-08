@@ -3,9 +3,9 @@ import "@reactor-team/ui/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Do Not Disturb · Bring your miniature to life",
+  title: "Do Not Disturb · Your table, a living world",
   description:
-    "Create a hero from your tabletop miniature, give them a story, and meet them in a live conversation.",
+    "A physical tabletop adventure on the big screen. Your miniatures, your voices, and a cinematic world shaped by the Dungeon Master.",
 };
 
 export default function RootLayout({
