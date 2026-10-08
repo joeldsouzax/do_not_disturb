@@ -68,6 +68,7 @@ interface SessionValue {
   phase: Phase | null;
   voices: ViduS2AvatarVoicesMessage | null;
   photo: Photo | null;
+  photoReady: boolean;
   setup: CallSetup;
   patchSetup: (patch: Partial<CallSetup>) => void;
   transcript: Line[];
@@ -77,7 +78,7 @@ interface SessionValue {
   micMuted: boolean;
   webcam: MediaStream | null;
   chooseCharacter: (character: Character) => void;
-  choosePhoto: (file: File) => void;
+  choosePhoto: (file: File, name?: string) => void;
   startCall: () => Promise<void>;
   endCall: () => Promise<void>;
   say: (text: string) => void;
@@ -178,6 +179,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // ── The snapshot, and what hangs off it ──────────────────────────────────
 
   useViduS2AvatarSessionState((next) => {
+    // Associate a ready avatar with the requested photo before rendering the
+    // snapshot. A refused upload must not approve the previous avatar under
+    // a new photo; an already known avatar can safely be reattached.
+    const pending = pendingBindRef.current;
+    if (
+      pending &&
+      next.phase === "avatar_ready" &&
+      next.avatar_status === "ready" &&
+      next.avatar_id &&
+      (next.avatar_id !== pending.before || boundRef.current.get(pending.key) === next.avatar_id)
+    ) {
+      boundRef.current.set(pending.key, next.avatar_id);
+      pendingBindRef.current = null;
+    }
     setSnapshot(next);
     firstSnapshotRef.current?.();
     firstSnapshotRef.current = null;
@@ -187,25 +202,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (status !== "ready") setSnapshot(null);
   }, [status]);
 
-  // Remember the character once the model has built it. Only a snapshot
-  // whose `avatar_id` differs from the one the session held when `prepare()`
-  // sent its command counts: `photo` changes before the model answers, and a
-  // refused `create_avatar` or a failed upload leaves the previous
-  // character's snapshot in place, which must not be recorded under the new
-  // photo.
-  useEffect(() => {
-    const pending = pendingBindRef.current;
-    if (
-      pending &&
-      snapshot?.phase === "avatar_ready" &&
-      snapshot.avatar_status === "ready" &&
-      snapshot.avatar_id &&
-      snapshot.avatar_id !== pending.before
-    ) {
-      boundRef.current.set(pending.key, snapshot.avatar_id);
-      pendingBindRef.current = null;
-    }
-  }, [snapshot?.phase, snapshot?.avatar_status, snapshot?.avatar_id]);
+  const photoReady = Boolean(
+    status === "ready" && photo && snapshot?.avatar_status === "ready" &&
+    snapshot.avatar_id && boundRef.current.get(photo.key) === snapshot.avatar_id,
+  );
 
   // A new call starts with a clean transcript.
   const previousPhaseRef = useRef<Phase | null>(null);
@@ -424,12 +424,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const choosePhoto = useCallback(
-    (file: File) => {
+    (file: File, name?: string) => {
       voiceHintRef.current = "";
       choose({
-        key: `upload:${file.name}:${file.size}:${file.lastModified}`,
+        key: `upload:${file.name}:${file.size}:${file.lastModified}:${name?.trim() ?? ""}`,
         url: URL.createObjectURL(file),
-        name: file.name.replace(/\.[^.]+$/, "").slice(0, 100) || "Character",
+        name: name?.trim().slice(0, 100) || file.name.replace(/\.[^.]+$/, "").slice(0, 100) || "Character",
         file,
       });
     },
@@ -463,7 +463,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // ── The call ─────────────────────────────────────────────────────────────
 
   const startCall = useCallback(async () => {
-    if (!callStartable(phase) || !setup.persona.trim()) return;
+    if (!photoReady || !callStartable(phase) || !setup.persona.trim()) return;
     setNotice(null);
     setBusy("starting");
     try {
@@ -477,7 +477,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } finally {
       setBusy(null);
     }
-  }, [phase, setup, openMedia, releaseMedia]);
+  }, [photoReady, phase, setup, openMedia, releaseMedia]);
 
   const endCall = useCallback(async () => {
     setBusy("ending");
@@ -597,6 +597,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase,
       voices,
       photo,
+      photoReady,
       setup,
       patchSetup,
       transcript,
@@ -623,6 +624,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       phase,
       voices,
       photo,
+      photoReady,
       setup,
       patchSetup,
       transcript,

@@ -3,9 +3,9 @@ import "@reactor-team/ui/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Vidu S2-Avatar",
+  title: "Do Not Disturb · Bring your miniature to life",
   description:
-    "Turn one photo into a character you can call live, with Reactor + Vidu S2-Avatar",
+    "Create a hero from your tabletop miniature, give them a story, and meet them in a live conversation.",
 };
 
 export default function RootLayout({

@@ -5,6 +5,35 @@ description: Extend this cloned Vidu S2-Avatar example app — add controls, cha
 
 # Building on this Vidu S2-Avatar app
 
+## do-not-disturb prototype
+
+The current entry screen is `app/components/MiniatureWorkshop.tsx`. It replaces
+the generic character roster with a miniature photo, name, class, and backstory.
+Source selection and editing stay local. The first explicit action fetches the
+sample image or uses the uploaded/captured file, then calls
+`choosePhoto(file, characterName)` to connect and prepare the avatar. A second
+action starts the live call after the model reports a ready avatar.
+
+`preparedFor` records which source/name the player requested. The session's
+`photoReady` is derived from the existing photo-to-avatar binding map and the
+model snapshot. The binding map updates when an accepted ready snapshot arrives,
+before rendering it, so an old ready avatar cannot approve a changed photo.
+Known avatars can be reattached without rebuilding. `startCall` also gates on
+`photoReady`; the model snapshot remains authoritative for its lifecycle.
+
+Webcam capture is local: open the camera, capture a JPG, then stop its tracks.
+The live introduction uses an audio call; the capture camera is not kept open
+or published into that call. Direct miniature input is an experiment. Image
+conversion through Nano Banana and external voice integration are not wired yet.
+
+`page.tsx` always renders the workshop and passes a boolean `configured` flag.
+Without a Reactor key, creation and preview still work; the live action shows
+setup instructions and never connects. For this checkout, ignored `.env.local`
+links to the project root `.env`. A standalone copy needs its own `.env.local`.
+
+The original generic picker and setup components remain available in the folder
+but are not mounted by `ViduApp`. The model/call guidance below still applies.
+
 You've cloned this folder and now you want to extend it. This guide explains
 the patterns the existing code uses and the rules to follow so your additions
 feel native instead of bolted on. All the code referenced below already exists
@@ -98,8 +127,8 @@ Three predicates cover almost every decision:
    to `session_state`.
 3. Add the action to [`app/lib/session.tsx`](../app/lib/session.tsx) if it
    touches the call flow; call the typed method directly if it does not.
-4. Drop the component into the column that matches its phase in
-   [`app/ViduApp.tsx`](../app/ViduApp.tsx).
+4. Drop the component into the matching phase in
+   [`app/components/MiniatureWorkshop.tsx`](../app/components/MiniatureWorkshop.tsx).
 
 ## What's intentionally not exposed
 
@@ -373,4 +402,4 @@ Clip URLs are short-lived, so a clip is not a shareable link.
 - [ ] Model-specific code imports through `app/lib/model.ts`; only `SnapClip`
       imports the base SDK directly for recording.
 - [ ] Disconnect mid-call, reconnect: no stale call on screen.
-- [ ] Unset `REACTOR_API_KEY`: the setup landing renders, not a 500.
+- [ ] Unset `REACTOR_API_KEY`: the workshop remains usable and the live action shows setup instructions.

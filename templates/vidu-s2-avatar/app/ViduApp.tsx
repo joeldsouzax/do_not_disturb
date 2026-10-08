@@ -2,16 +2,7 @@
 
 import { ViduS2AvatarProvider } from "./lib/model";
 import { SessionProvider } from "./lib/session";
-import { CallControls } from "./components/CallControls";
-import { CallSetup } from "./components/CallSetup";
-import { CharacterPicker } from "./components/CharacterPicker";
-import { CommandError } from "./components/CommandError";
-import { Header } from "./components/Header";
-import { References } from "./components/References";
-import { SnapClip } from "./components/SnapClip";
-import { Stage } from "./components/Stage";
-import { StatusBadge } from "./components/StatusBadge";
-import { Transcript } from "./components/Transcript";
+import { MiniatureWorkshop } from "./components/MiniatureWorkshop";
 
 // The memoized token resolver handed to <ViduS2AvatarProvider jwtToken>.
 //
@@ -56,28 +47,11 @@ async function fetchToken(): Promise<string> {
 // because the session has work to do from that moment (fetch the voices,
 // build the character). The setup column and the call column swap on the
 // model's phase, so each component decides for itself whether it shows.
-export function ViduApp() {
+export function ViduApp({ configured }: { configured: boolean }) {
   return (
     <ViduS2AvatarProvider jwtToken={fetchToken}>
       <SessionProvider>
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex flex-1 flex-col gap-5 p-4 lg:flex-row lg:gap-6 lg:p-6">
-            <aside className="flex w-full flex-col gap-4 lg:w-[24rem] lg:shrink-0">
-              <CharacterPicker />
-              <CallSetup />
-              <CallControls />
-              <References />
-            </aside>
-            <section className="flex min-w-0 flex-1 flex-col gap-3">
-              <StatusBadge />
-              <CommandError />
-              <Stage />
-              <Transcript />
-              <SnapClip />
-            </section>
-          </main>
-        </div>
+        <MiniatureWorkshop configured={configured} />
       </SessionProvider>
     </ViduS2AvatarProvider>
   );
